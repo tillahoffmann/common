@@ -2,39 +2,42 @@ __author__ = 'Till Hoffmann'
 
 import numpy as np
 
-def categorical(pvals):
+def categorical(pvals, size=None):
     """
     Draw samples from a categorical distribution.
 
     Parameters
     ----------
-    pvals : sequence of floats, length p or array of floats, length n*p
+    pvals : sequence of floats, length p or array of floats, shape (p, ...)
         Probabilities of each of the ``p`` different outcomes. The entries are
         renormalised such that an unnormalised distribution can be provided.
-
-        ``n`` rows of probabilities of each of the ``p`` different outcomes.
-        The entries are renormalised such that an unnormalised distribution
-        can be provided.
+    size : tuple of ints
+        Given a `size` of ``(M, N, K)``, then ``M*N*K`` samples are drawn,
+        and the output shape becomes ``(M, N, K, p, ...)``, since each sample
+        has shape ``(p, ...)``.
     """
     #Convert to a numpy array
     if type(pvals) is not np.array:
         pvals = np.array(pvals)
 
-    #Reshape to dimension 2 if it is of dimension one
-    if pvals.ndim == 1:
-        pvals = np.reshape(pvals, (1, len(pvals)))
+    #Make sure the size is a tuple
+    size = size or (1,)
+    if type(size) is int:
+        size = (size,)
+    else:
+        assert type(size) is tuple
 
     #Compute the cumulative distribution
-    cvals = np.cumsum(pvals, axis=1)
+    cvals = np.cumsum(pvals, axis=0)
     #Generate uniform random variables
-    x = np.random.uniform(size = len(cvals)) * cvals[:,-1]
+    x = np.random.uniform(size = cvals.shape[1:] + size) * cvals[-1]
     #Get the categories
-    x = np.argmin(cvals <= x[:,np.newaxis], axis = 1)
+    x = np.argmin(cvals[:,np.newaxis] <= x, axis = 0)
     return x
 
 
 if __name__ == '__main__':
     pvals = np.linspace(1, 4, 4)
-    x = categorical(np.vstack((pvals,) * 1000))
+    x = categorical(pvals, 1000)
     print np.bincount(x), pvals / np.sum(pvals)
 
