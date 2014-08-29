@@ -1,3 +1,3 @@
 __author__ = 'tillhoffmann'
-import random
+import crandom
 import stats
