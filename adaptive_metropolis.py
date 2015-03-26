@@ -24,10 +24,18 @@ class AdaptiveMetropolisSampler:
         self.log_posteriors = []
 
     def acceptance_rate(self):
+        """
+        Computes the acceptance rate.
+        """
         samples = np.asarray(self.samples)
         return np.mean(samples[1:] != samples[:-1])
 
     def __call__(self, num_steps):
+        """
+        Performs the specified number of Metropolis-Hastings steps.
+        :param num_steps: The number of steps to make.
+        :return: All samples of the parameter values including samples from previous calls.
+        """
         # Initialise log posterior
         lp_current = self.log_posterior(self.parameters, self.data)
 
@@ -64,21 +72,23 @@ class AdaptiveMetropolisSampler:
 
 def __main__():
     from matplotlib import pyplot as plt
-    # Test with multivariate Gaussian
+    # Generate test data from a multivariate Gaussian
     num_samples = 100
     mu = [3, 4]
     sigma = np.eye(len(mu))
-
     data = np.random.multivariate_normal(mu, sigma, num_samples)
 
+    # Define the log posterior
     def log_posterior(_parameters, _data):
         residuals = _data - _parameters
         return -5 * np.sum(residuals * residuals)
 
+    # Initialise the adaptive metropolis sampler
     ams = AdaptiveMetropolisSampler(mu, data, log_posterior)
-
+    # Obtain 2000 samples
     samples = ams(2000)
 
+    # Create a trace plot
     fig = plt.figure()
     colours = "rgb"
     ax1 = fig.add_subplot(111)
