@@ -264,12 +264,12 @@ class Mixture:
     References
     ----------
     [1] C. E. Rasmussen. The infinite gaussian mixture model. In S. Solla, 
-        T. Leen, and K.-R. Müller, editors, Advances in Neural Information 
-        Processing Systems 12, pages 554–560. MIT Press, 2000.
-    [2] R. M. Neal. Markov chain sampling methods for dirichlet process 
-        mixture models. Journal of Computational and Graphical 
-        Statistics, 9(2):249–265, 2000. 
-    [3] G. Synnaeve. Collapsed Gibbs Sampling for Dirichlet Process 
+        T. Leen, and K.-R. M\"uller, editors, Advances in Neural Information 
+        Processing Systems 12, pages 554--560. MIT Press, 2000.
+    [2] R. M. Neal. Markov chain sampling methods for dirichlet process
+        mixture models. Journal of Computational and Graphical
+        Statistics, 9(2):249--265, 2000.     
+    [3] G. Synnaeve. Collapsed Gibbs Sampling for Dirichlet Process
         Gaussian Mixture Models. URL: http://bit.ly/1FaL8zE
     """
     def __init__(self, X, alpha=1.0, chi=None, kappa=0.0, psi=None, nu=None, weight=None):
