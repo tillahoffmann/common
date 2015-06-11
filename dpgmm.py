@@ -1,4 +1,3 @@
-
 import numpy as np
 from scipy.stats import wishart
 
@@ -400,13 +399,16 @@ class Mixture:
         ndarray, 2 dimensions
             A `ns` by `m` array of `ns` samples of the mixture distribution.
         """
+        # Bring data to the right shape
         Y = np.asarray(Y)
         if Y.ndim == 1:
             Y = Y[:, None]
 
+        # Iterate over all samples
         samples = []
         for list_rho, list_mu, list_tau in zip(self.samples_rho, self.samples_mu,
                                                self.samples_tau):
+            # Iterate over all components
             sample = 0
             for rho, mu, tau in zip(list_rho, list_mu, list_tau):
                 det = np.linalg.det(tau)
@@ -421,6 +423,7 @@ class Mixture:
                 # chi2[i] = Y[i, j]tau[j,k]Y[i,k]
                 #         = Y[i, j]tau[j,k]Y.T[k, i]
                 chi2 = np.sum(residual.dot(tau) * residual, axis=1)
+                # Add the weighted contribution
                 sample += rho * np.exp(-0.5 * chi2) / norm
             samples.append(sample)
         return np.asarray(samples)
