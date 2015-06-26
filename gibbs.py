@@ -1,3 +1,5 @@
+import numpy as np
+
 class Gibbs(object):
     """
     Abstract base class for simple Gibbs sampling with conjugate priors.
@@ -61,7 +63,7 @@ class Gibbs(object):
             ``m * n * k`` samples are drawn.  Default is None, in which case a
             single value is returned.
         """
-        return self.sample(self.prior_params, None)
+        return self.sample(self.prior_params, size)
     
     def sample_posterior(self, size=None):
         """
@@ -78,7 +80,22 @@ class Gibbs(object):
         if self.posterior_params is None:
             raise RuntimeError("Posterior parameters are not defined. Call "
                                "`evaluate_posterior_params` first.")
-        return self.sample(self.posterior_params, None)
+        return self.sample(self.posterior_params, size)
+    
+    def evaluate_likelihood(Y, sample):
+        """
+        Evaluate the conjugate likelihood.
+        
+        Parameters
+        ----------
+        Y : array_like
+            The values at which to evaluate the likelihood.
+        sample : array_like
+            A sample from the distribution characterising the likelihood.
+        """
+        raise NotImplementedError("Inheriting classes should implement this "
+                                  "function to evaluate the likelihood that "
+                                  "the distribution is conjugate to.")
 
 class NormalGamma(Gibbs):
     """
@@ -156,6 +173,28 @@ class NormalGamma(Gibbs):
         # Store the parameters
         self.posterior_params = np.asarray([mu2, lmbda2, alpha2, beta2])
         
+    def evaluate_likelihood(self, Y, sample):
+        """
+        Evaluate the conjugate likelihood which is a normal distribution.
+        
+        Parameters
+        ----------
+        Y : array_like
+            The values at which to evaluate the likelihood.
+        sample : array_like
+            A sample of the mean and precision.
+        """
+        # Extract the mean and precision
+        mean, precision = np.asarray(sample)
+        # Compute the distribution
+        chi2 = (Y[:, None] - mean) ** 2 * precision
+        pdf = (np.sqrt(precision / (2 * pi)) * np.exp(-0.5 * chi2)).T
+        # Return the first entry if there is only one sample
+        if pdf.shape[0] == 1:
+            return pdf[0]
+        else:
+            return pdf
+        
 class NormalInverseGamma(NormalGamma):
     """
     A normal-gamma distribution which is a conjugate prior for normally-
@@ -193,3 +232,16 @@ class NormalInverseGamma(NormalGamma):
         """
         samples_mean, samples_precision = super(NormalInverseGamma, self).sample(params, size)
         return samples_mean, 1.0 / samples_precision
+    
+    def evaluate_likelihood(self, Y, sample):
+        """
+        Evaluate the conjugate likelihood which is a normal distribution.
+        
+        Parameters
+        ----------
+        Y : array_like
+            The values at which to evaluate the likelihood.
+        sample : array_like
+            A sample of the mean and variance.
+        """
+        return super(NormalInverseGamma, self).evaluate_likelihood(Y, (sample[0], 1.0 / sample[1]))
