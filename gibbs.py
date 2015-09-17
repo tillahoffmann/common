@@ -82,6 +82,7 @@ class Gibbs(object):
                                "`evaluate_posterior_params` first.")
         return self.sample(self.posterior_params, size)
     
+    @staticmethod
     def evaluate_likelihood(Y, sample):
         """
         Evaluate the conjugate likelihood.
@@ -172,8 +173,9 @@ class NormalGamma(Gibbs):
                               * (mean - mu) ** 2 / lmbda2)
         # Store the parameters
         self.posterior_params = np.asarray([mu2, lmbda2, alpha2, beta2])
-        
-    def evaluate_likelihood(self, Y, sample):
+    
+    @staticmethod
+    def evaluate_likelihood(Y, sample):
         """
         Evaluate the conjugate likelihood which is a normal distribution.
         
@@ -188,7 +190,7 @@ class NormalGamma(Gibbs):
         mean, precision = np.asarray(sample)
         # Compute the distribution
         chi2 = (Y[:, None] - mean) ** 2 * precision
-        pdf = (np.sqrt(precision / (2 * pi)) * np.exp(-0.5 * chi2)).T
+        pdf = (np.sqrt(precision / (2 * np.pi)) * np.exp(-0.5 * chi2)).T
         # Return the first entry if there is only one sample
         if pdf.shape[0] == 1:
             return pdf[0]
@@ -233,7 +235,8 @@ class NormalInverseGamma(NormalGamma):
         samples_mean, samples_precision = super(NormalInverseGamma, self).sample(params, size)
         return samples_mean, 1.0 / samples_precision
     
-    def evaluate_likelihood(self, Y, sample):
+    @staticmethod
+    def evaluate_likelihood(Y, sample):
         """
         Evaluate the conjugate likelihood which is a normal distribution.
         
@@ -244,4 +247,4 @@ class NormalInverseGamma(NormalGamma):
         sample : array_like
             A sample of the mean and variance.
         """
-        return super(NormalInverseGamma, self).evaluate_likelihood(Y, (sample[0], 1.0 / sample[1]))
+        return NormalGamma.evaluate_likelihood(Y, (sample[0], 1.0 / sample[1]))
