@@ -2,13 +2,15 @@ import numpy as np
 
 
 class AdaptiveMetropolisSampler:
-    def __init__(self, parameters, data, log_posterior, threshold=100, epsilon=1e-5, scale=5.76):
+    def __init__(self, parameters, data, log_posterior, threshold=100,
+                 epsilon=1e-5, scale=5.76, mode='update'):
         # Store information
         self.parameters = np.atleast_1d(parameters)
         self.data = data
         self.log_posterior = log_posterior
         self.threshold = threshold
         self.epsilon = epsilon
+        self.mode = mode
 
         # Store derived information
         self.num_parameters = self.parameters.shape[0]
@@ -23,21 +25,22 @@ class AdaptiveMetropolisSampler:
         self.samples = []
         self.log_posteriors = []
 
-    def acceptance_rate(self):
+    def acceptance_rate(self, burnin=0):
         """
         Computes the acceptance rate.
         """
-        samples = np.asarray(self.samples)
+        samples = np.asarray(self.samples[burnin:])
         return np.mean(samples[1:] != samples[:-1])
 
-    def __call__(self, num_steps):
+    def __call__(self, num_steps, report=0):
         """
         Performs the specified number of Metropolis-Hastings steps.
         :param num_steps: The number of steps to make.
         :return: All samples of the parameter values including samples from previous calls.
         """
         # Initialise log posterior
-        lp_current = self.log_posterior(self.parameters, self.data)
+        if self.mode=='update':
+            lp_current = self.log_posterior(self.parameters, self.data)
 
         # Iterate over steps
         for step in range(num_steps):
@@ -46,7 +49,12 @@ class AdaptiveMetropolisSampler:
                 else self.sample_covariance + self.covariance0
             proposal = np.random.multivariate_normal(self.parameters, self.scale * _covariance)
             # Compute the log posterior
-            lp_proposal = self.log_posterior(proposal, self.data)
+            if self.mode=='update':
+                lp_proposal = self.log_posterior(proposal, self.data)
+            elif self.mode=='reevaluate':
+                lp_current, lp_proposal = self.log_posterior(self.parameters, proposal, self.data)
+            else:
+                raise KeyError(self.mode)
             # Accept or reject the step
             if lp_proposal - lp_current > np.log(np.random.uniform()):
                 # Update the log posterior and the parameter values
@@ -66,6 +74,10 @@ class AdaptiveMetropolisSampler:
             # Save the parameters
             self.samples.append(self.parameters)
             self.log_posteriors.append(lp_current)
+    
+            # Report if desired
+            if report and (step + 1) % report==0:
+                print step + 1, self.acceptance_rate(step + 1 - report)
 
         return np.asarray(self.samples)
 
