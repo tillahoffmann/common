@@ -1,4 +1,5 @@
 import numpy as np
+import inspect
 
 def credible_interval(samples, summary='mean', tail=0.5):
     """
@@ -26,3 +27,19 @@ def credible_interval(samples, summary='mean', tail=0.5):
     lower = np.percentile(samples, lower_tail, axis=0)
     upper = np.percentile(samples, 100 - upper_tail, axis=0)
     return np.asarray((s, lower, upper))
+
+class Namespace:
+    """
+    A container for values that can be accessed as member variables.
+    """
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+    @staticmethod
+    def from_arguments(function, _locals):
+        """
+        Creates a namespace from the arguments passed to
+        `function` using the values in `_locals`.
+        """
+        return Namespace(**{arg: _locals[arg] for arg in
+                            inspect.getargspec(function).args})
