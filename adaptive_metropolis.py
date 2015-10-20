@@ -50,9 +50,9 @@ class AdaptiveMetropolisSampler:
             proposal = np.random.multivariate_normal(self.parameters, self.scale * _covariance)
             # Compute the log posterior
             if self.mode=='update':
-                lp_proposal = self.log_posterior(proposal, self.data)
+                lp_proposal = self.log_posterior(self.data, proposal)
             elif self.mode=='reevaluate':
-                lp_current, lp_proposal = self.log_posterior(self.parameters, proposal, self.data)
+                lp_current, lp_proposal = self.log_posterior(self.data, proposal, self.parameters)
             else:
                 raise KeyError(self.mode)
             # Accept or reject the step
@@ -91,7 +91,7 @@ def __main__():
     data = np.random.multivariate_normal(mu, sigma, num_samples)
 
     # Define the log posterior
-    def log_posterior(_parameters, _data):
+    def log_posterior(_data, _parameters):
         residuals = _data - _parameters
         return -5 * np.sum(residuals * residuals)
 
