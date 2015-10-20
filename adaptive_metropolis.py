@@ -2,11 +2,10 @@ import numpy as np
 
 
 class AdaptiveMetropolisSampler:
-    def __init__(self, parameters, data, log_posterior, threshold=100,
+    def __init__(self, parameters, log_posterior, threshold=100,
                  epsilon=1e-5, scale=5.76, mode='update'):
         # Store information
         self.parameters = np.atleast_1d(parameters)
-        self.data = data
         self.log_posterior = log_posterior
         self.threshold = threshold
         self.epsilon = epsilon
@@ -32,7 +31,7 @@ class AdaptiveMetropolisSampler:
         samples = np.asarray(self.samples[burnin:])
         return np.mean(samples[1:] != samples[:-1])
 
-    def __call__(self, num_steps, report=0):
+    def __call__(self, num_steps, report=0, **kwargs):
         """
         Performs the specified number of Metropolis-Hastings steps.
         :param num_steps: The number of steps to make.
@@ -40,7 +39,7 @@ class AdaptiveMetropolisSampler:
         """
         # Initialise log posterior
         if self.mode=='update':
-            lp_current = self.log_posterior(self.parameters, self.data)
+            lp_current = self.log_posterior(self.parameters, **kwargs)
 
         # Iterate over steps
         for step in range(num_steps):
@@ -50,9 +49,9 @@ class AdaptiveMetropolisSampler:
             proposal = np.random.multivariate_normal(self.parameters, self.scale * _covariance)
             # Compute the log posterior
             if self.mode=='update':
-                lp_proposal = self.log_posterior(self.data, proposal)
+                lp_proposal = self.log_posterior(proposal, **kwargs)
             elif self.mode=='reevaluate':
-                lp_current, lp_proposal = self.log_posterior(self.data, proposal, self.parameters)
+                lp_current, lp_proposal = self.log_posterior(proposal, self.parameters, **kwargs)
             else:
                 raise KeyError(self.mode)
             # Accept or reject the step
@@ -91,14 +90,14 @@ def __main__():
     data = np.random.multivariate_normal(mu, sigma, num_samples)
 
     # Define the log posterior
-    def log_posterior(_data, _parameters):
-        residuals = _data - _parameters
+    def log_posterior(_parameters, **kwargs):
+        residuals = kwargs['data'] - _parameters
         return -5 * np.sum(residuals * residuals)
 
     # Initialise the adaptive metropolis sampler
-    ams = AdaptiveMetropolisSampler(mu, data, log_posterior)
+    ams = AdaptiveMetropolisSampler(mu, log_posterior)
     # Obtain 2000 samples
-    samples = ams(2000)
+    samples = ams(2000, data=data)
 
     # Create a trace plot
     fig = plt.figure()
