@@ -21,37 +21,38 @@ class AdaptiveMetropolisSampler:
         self.sample_mean = np.zeros(self.num_parameters)
         self.sample_covariance = 0
         # Initialise containers for the samples and log posterior
-        self.samples = []
+        self._samples = []
         self.log_posteriors = []
 
     def acceptance_rate(self, burnin=0):
         """
         Computes the acceptance rate.
         """
-        samples = np.asarray(self.samples[burnin:])
+        samples = np.asarray(self._samples[burnin:])
         return np.mean(samples[1:] != samples[:-1])
 
-    def __call__(self, num_steps, report=0, **kwargs):
+    def __call__(self, num_steps, *args, **kwargs):
         """
         Performs the specified number of Metropolis-Hastings steps.
         :param num_steps: The number of steps to make.
         :return: All samples of the parameter values including samples from previous calls.
         """
+        report = kwargs.pop('report', None)
         # Initialise log posterior
         if self.mode=='update':
-            lp_current = self.log_posterior(self.parameters, **kwargs)
+            lp_current = self.log_posterior(self.parameters, *args, **kwargs)
 
         # Iterate over steps
         for step in range(num_steps):
             # Make a proposal with the initial covariance or the scaled sample covariance
-            _covariance = self.covariance0 if len(self.samples) < self.threshold \
+            _covariance = self.covariance0 if len(self._samples) < self.threshold \
                 else self.sample_covariance + self.covariance0
             proposal = np.random.multivariate_normal(self.parameters, self.scale * _covariance)
             # Compute the log posterior
             if self.mode=='update':
-                lp_proposal = self.log_posterior(proposal, **kwargs)
+                lp_proposal = self.log_posterior(proposal, *args, **kwargs)
             elif self.mode=='reevaluate':
-                lp_current, lp_proposal = self.log_posterior(proposal, self.parameters, **kwargs)
+                lp_proposal, lp_current = self.log_posterior(proposal, self.parameters, *args, **kwargs)
             else:
                 raise KeyError(self.mode)
             # Accept or reject the step
@@ -62,23 +63,35 @@ class AdaptiveMetropolisSampler:
 
             # Update the sample mean...
             previous_mean = self.sample_mean
-            self.sample_mean = (self.parameters + len(self.samples) * previous_mean) / (len(self.samples) + 1)
+            self.sample_mean = (self.parameters + len(self._samples) * previous_mean) / (len(self._samples) + 1)
 
             # ...and the sample covariance
-            self.sample_covariance = (len(self.samples) * self.sample_covariance + self.parameters *
-                                      self.parameters[:, None] + len(self.samples) * previous_mean *
-                                      previous_mean[:, None]) / (len(self.samples) + 1) - self.sample_mean * \
+            self.sample_covariance = (len(self._samples) * self.sample_covariance + self.parameters *
+                                      self.parameters[:, None] + len(self._samples) * previous_mean *
+                                      previous_mean[:, None]) / (len(self._samples) + 1) - self.sample_mean * \
                                                                                           self.sample_mean[:, None]
 
             # Save the parameters
-            self.samples.append(self.parameters)
+            self._samples.append(self.parameters)
             self.log_posteriors.append(lp_current)
     
             # Report if desired
             if report and (step + 1) % report==0:
                 print step + 1, self.acceptance_rate(step + 1 - report)
 
-        return np.asarray(self.samples)
+        return np.asarray(self._samples)
+
+    @property
+    def samples(self):
+        return np.asarray(self._samples)
+
+
+    def plot_trace(self):
+        import matplotlib.pyplot as plt
+        ax1 = plt.subplot(121)
+        ax1.plot(self._samples)
+        ax2 = plt.subplot(122, sharex=ax1)
+        ax2.plot(self.log_posteriors)
 
 
 def __main__():
