@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class Gibbs(object):
     """
     Abstract base class for simple Gibbs sampling with conjugate priors.
@@ -97,6 +98,7 @@ class Gibbs(object):
         raise NotImplementedError("Inheriting classes should implement this "
                                   "function to evaluate the likelihood that "
                                   "the distribution is conjugate to.")
+
 
 class NormalGamma(Gibbs):
     """
@@ -196,7 +198,8 @@ class NormalGamma(Gibbs):
             return pdf[0]
         else:
             return pdf
-        
+
+
 class NormalInverseGamma(NormalGamma):
     """
     A normal-gamma distribution which is a conjugate prior for normally-
