@@ -1,5 +1,8 @@
 import numpy as np
+from warnings import warn
 
+warn("The `gibbs` package is deprecated. Have a look at `conjugate` instead which is more flexible and also allows"
+     "for variational inference.")
 
 class Gibbs(object):
     """

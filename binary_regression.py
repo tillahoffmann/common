@@ -61,7 +61,8 @@ class BinaryRegression(object):
             # Recode as +-1 if necessary
             if self.observations.dtype == np.bool:
                 self.observations = 2 * self.observations - 1
-            assert np.abs(self.observations) == 1, "Observations must be coded as +1 for success and -1 for failure."
+            assert np.all(np.abs(self.observations) == 1), \
+                "Observations must be coded as +1 for success and -1 for failure."
         else:
             self.observations = None
 
