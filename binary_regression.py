@@ -318,11 +318,18 @@ def __main__():
 
     # Show trace plots
     plt.subplot(121)
-    for parameter in parameters:
-        plt.axhline(parameter)
-    if samples is not None:
-        plt.plot(samples['parameters'])
-    plt.plot(sequence['parameter_means'])
+    colors = 'rbgk'
+    j = 0
+    for i, parameter in enumerate(parameters):
+        if parameter:
+            color = colors[j % len(colors)]
+            j+=1
+        else:
+            color='gray'
+        plt.axhline(parameter, color=color, ls='dashed')
+        if samples is not None:
+            plt.plot(samples['parameters'][:,i], color=color, ls=':')
+        plt.plot(sequence['parameter_means'][:,i], color=color)
 
     plt.subplot(122)
     plt.plot(elbos)
@@ -330,16 +337,24 @@ def __main__():
 
     # Show uncertainties
     rows, cols = 2, 4
+    j=0
     for i in range(p):
+        if parameters[i]:
+            color = colors[j % len(colors)]
+            j+=1
+        else:
+            color='gray'
+
         ax = plt.subplot(rows, cols, i + 1)
         if samples is not None:
             # Show a histogram
-            plt.hist(samples['parameters'][500:, i], normed=True)
+            ax.hist(samples['parameters'][500:, i], normed=True, histtype='stepfilled', color=color, alpha=.2)
         # Show the variational approximation
-        mean, std = sequence['parameter_means'][-1,i], np.sqrt(sequence['parameter_cov'][-1,i,i])
+        mean, std = sequence['parameter_means'][-1, i], np.sqrt(sequence['parameter_cov'][-1, i, i])
         linx = np.linspace(mean - 3 * std, mean + 3 * std)
-        plt.plot(linx, stats.norm.pdf(linx, mean, std))
-        plt.axvline(parameters[i])
+        ax.plot(linx, stats.norm.pdf(linx, mean, std), color=color)
+        ax.axvline(parameters[i], color=color)
+        ax.axvline(0, color='k', ls='dotted')
 
     plt.show()
 
