@@ -217,9 +217,9 @@ class AdaptiveRejectionSampler:
         # Evaluate the function and its derivative
         x = np.linspace(start, stop, num)
         if self.jac:
-            y = self.fun(x, *self.args)
+            y = np.asarray([self.fun(_x, *self.args) for _x in x])
         else:
-            y, _ = self.fun(x, *self.args)
+            y = np.asarray([self.fun(_x, *self.args)[0] for _x in x])
 
         # Plot the function
         ax.plot(x, y - self._fun_maximum)
