@@ -4,14 +4,30 @@ from scipy.stats import gaussian_kde
 import pandas as pd
 
 
+class ReportCallback(object):
+    def __init__(self, frequency, *args):
+        self.frequency = frequency
+        self.current = 0
+        self.args = args
+
+    def __call__(self, parameters):
+        self.current += 1
+        if self.current % self.frequency == 0:
+            print "{}: {}".format(self.current, parameters)
+        # Call all the other callbacks
+        for arg in self.args:
+            arg(parameters)
+
+
 class BaseSampler(object):
-    def __init__(self, fun, args=None, parameter_names=None):
+    def __init__(self, fun, args=None, parameter_names=None, break_on_interrupt=True):
         if not callable(fun):
             raise ValueError("`fun` must be callable")
 
         self.fun = fun
         self.args = [] if args is None else args
         self.parameter_names = parameter_names
+        self.break_on_interrupt = break_on_interrupt
 
         self._samples = []
         self._fun_values = []
@@ -19,7 +35,7 @@ class BaseSampler(object):
     def get_parameter_name(self, index):
         return str(index) if self.parameter_names is None else self.parameter_names[index]
 
-    def trace_plot(self, burn_in=0, parameters=None):
+    def trace_plot(self, burn_in=0, parameters=None, values=None):
         samples = self.samples[burn_in:]
 
         if parameters is None:
@@ -29,6 +45,12 @@ class BaseSampler(object):
 
         for parameter in parameters:
             ax1.plot(samples[:, parameter], label=self.get_parameter_name(parameter))
+
+        # Plot true values
+        if values is not None:
+            for value in values:
+                ax1.axhline(value, ls='dotted')
+
         ax1.set_xlabel('Iterations')
         ax1.set_ylabel('Parameter values')
         ax1.legend(loc=0, frameon=False)
@@ -41,7 +63,7 @@ class BaseSampler(object):
 
         return fig, (ax1, ax2)
 
-    def density_plot(self, burn_in=0, parameters=None, nrows=None, ncols=None, bins=10):
+    def density_plot(self, burn_in=0, parameters=None, values=None, nrows=None, ncols=None, bins=10):
         samples = self.samples[burn_in:]
 
         if parameters is None:
@@ -70,6 +92,11 @@ class BaseSampler(object):
             kde = gaussian_kde(x)
             ax.plot(lin_x, kde(lin_x), color='blue')
             ax.set_title(self.get_parameter_name(parameter))
+
+        # Plot true values
+        if values is not None:
+            for value, ax in zip(values, np.ravel(axes)):
+                ax.axvline(value, ls='dotted')
 
         fig.tight_layout()
 
@@ -115,4 +142,4 @@ def normal_log_posterior(parameters, mean=0, variance=1):
 
 
 def normal_log_posterior_jac(parameters, mean=0, variance=1):
-    return -0.5 * (parameters - mean) / variance
+    return - (parameters - mean) / variance

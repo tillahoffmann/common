@@ -2,7 +2,10 @@ import numpy as np
 import inspect
 from matplotlib.colors import LinearSegmentedColormap, ColorConverter
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
 from scipy.stats import gaussian_kde
+import json, base64
+
 
 def credible_interval(samples, summary='mean', tail=0.5):
     """
@@ -151,3 +154,89 @@ def parameter_density_plot(samples, names=None, num=100, burnin=None, start=None
 
     return fig
 
+
+def latexify(fig_width='revtex4', aspect=0.75):
+    """
+    Prepare publication quality plots.
+
+    Parameters
+    ----------
+    fig_width : str or float
+        a latex class or the width of the figure in pt
+    aspect : float
+        aspect ratio of figures
+
+    Notes
+    -----
+    Based on http://nipunbatra.github.io/2014/08/latexify/.
+    """
+    if fig_width=='revtex4':
+        fig_width = 246.0 / 72
+    fig_height = fig_width * aspect
+
+    params = {'axes.labelsize': 8,
+              'axes.titlesize': 8,
+              'font.size': 8,
+              'legend.fontsize': 8,
+              'xtick.labelsize': 8,
+              'ytick.labelsize': 8,
+              'lines.linewidth': 0.5,
+              'axes.linewidth': 0.5,
+              'lines.linewidth': 0.5,
+              'patch.linewidth': 0.5,
+              'figure.figsize': [fig_width, fig_height],
+              'figure.dpi': 160,
+              'lines.markersize': 3}
+
+    rcParams.update(params)
+    return rcParams
+
+
+def haversine((lat1, lon1), (lat2, lon2), degree=True):
+    """
+    Calculate the great circle distance between two points on the earth in km.
+    """
+    # Convert decimal degrees to radians
+    if degree:
+        lon1, lat1, lon2, lat2 = np.deg2rad([lon1, lat1, lon2, lat2])
+
+    # Haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = np.sin(dlat / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
+    c = 2 * np.arcsin(np.sqrt(a))
+    r = 6371
+    return c * r
+
+
+class NumpyEncoder(json.JSONEncoder):
+
+    def default(self, obj):
+        """If input object is an ndarray it will be converted into a dict
+        holding dtype, shape and the data, base64 encoded.
+        """
+        if isinstance(obj, np.ndarray):
+            if obj.flags['C_CONTIGUOUS']:
+                obj_data = obj.data
+            else:
+                cont_obj = np.ascontiguousarray(obj)
+                assert(cont_obj.flags['C_CONTIGUOUS'])
+                obj_data = cont_obj.data
+            data_b64 = base64.b64encode(obj_data)
+            return dict(__ndarray__=data_b64,
+                        dtype=str(obj.dtype),
+                        shape=obj.shape)
+        # Let the base class default method raise the TypeError
+        return json.JSONEncoder(self, obj)
+
+
+def json_numpy_obj_hook(dct):
+    """Decodes a previously encoded numpy ndarray with proper shape and dtype.
+
+    :param dct: (dict) json encoded ndarray
+    :return: (ndarray) if input was an encoded ndarray
+    """
+    if isinstance(dct, dict) and '__ndarray__' in dct:
+        data = base64.b64decode(dct['__ndarray__'])
+        return np.frombuffer(data, dct['dtype']).reshape(dct['shape'])
+    return dct

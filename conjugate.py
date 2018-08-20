@@ -196,6 +196,13 @@ class Normal(Conjugate):
         The `data_precision` and `data_total` parameters are calculated automatically if data are given. However, in
         complex situations it may be advantageous to provide the parameters explicitly.
         """
+        # Get the prior parameters and take the mean if necessary
+        prior_loc, prior_precision = self.prior_params
+        if isinstance(prior_loc, Conjugate):
+            prior_loc = prior_loc.posterior_mean()
+        if isinstance(prior_precision, Conjugate):
+            prior_precision = prior_precision.posterior_mean()
+
         # Calculate the update parameters from the data
         if data is not None:
             # Take the mean if the generative precision is uncertain
@@ -212,12 +219,10 @@ class Normal(Conjugate):
                              "and `data_total` must be specified.")
 
         # Update the posterior
-        prior_loc, prior_precision = self.prior_params
         posterior_precision = prior_precision + data_precision
         posterior_loc = (prior_precision * prior_loc + data_total) / posterior_precision
         self.posterior_params = [posterior_loc, posterior_precision]
         return self.posterior_params
-
 
 
 @prior_posterior
@@ -301,6 +306,13 @@ class Gamma(Conjugate):
         The `data_shape` and `data_scale` parameters are calculated automatically if data are given. However, in
         complex situations it may be advantageous to provide the parameters explicitly.
         """
+        # Get the prior parameters and take the mean if necessary
+        prior_shape, prior_scale = self.prior_params
+        if isinstance(prior_shape, Conjugate):
+            prior_shape = prior_shape.posterior_mean()
+        if isinstance(prior_scale, Conjugate):
+            prior_scale = prior_scale.posterior_mean()
+
         # Calculate the update parameters from the data
         if data is not None:
             data_shape = 0.5 * len(data)
@@ -324,7 +336,6 @@ class Gamma(Conjugate):
                              "and `data_scale` must be specified.")
 
         # Update the posterior
-        prior_shape, prior_scale = self.prior_params
         posterior_shape = prior_shape + data_shape
         posterior_scale = prior_scale + data_scale
         self.posterior_params = [posterior_shape, posterior_scale]

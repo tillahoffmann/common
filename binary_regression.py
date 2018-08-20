@@ -1,8 +1,6 @@
 import numpy as np
 from scipy.special import expit as logistic, erfc, gammaln
-from pyximport import install
 from warnings import warn
-install(setup_args=dict(include_dirs=np.get_include()))
 from cython_helper import truncnorm, seed_rng
 
 
